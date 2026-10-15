@@ -1,0 +1,13 @@
+target/
+.idea/
+.vscode/
+*.iml
+.env
+*.log
+.DS_Store
+Thumbs.db
+# Local configuration and secrets
+.env.*
+!.env.example
+*.local
+secrets.properties
