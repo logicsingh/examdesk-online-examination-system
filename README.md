@@ -9,6 +9,25 @@ ExamDesk is a Java web application for multiple-choice assessments in a college 
 - **Administrator:** assign account roles and maintain the subject catalogue.
 - **Application:** BCrypt password hashes, JDBC prepared statements, server-side role checks, database constraints for unique email/attempt/answer records, server-side scoring, and a persisted attempt/result history.
 
+
+## Application screenshots
+
+### Login page
+![ExamDesk login page](screenshots/login-page.png)
+
+### Student dashboard
+![Student dashboard](screenshots/student-dashboard.png)
+
+### Faculty workspace
+![Faculty workspace](screenshots/faculty-workspace.png)
+
+### Exam questions
+![Exam questions](screenshots/exam-questions.png)
+
+### Exam results
+![Exam results](screenshots/exam-results.png)
+
+
 ## Technology stack
 
 Java 17 · Jakarta Servlet 6 · JSP · Apache Tomcat 10.1+ · MySQL 8+ · JDBC · Maven · BCrypt · JUnit 5 · HTML/CSS/JavaScript.
