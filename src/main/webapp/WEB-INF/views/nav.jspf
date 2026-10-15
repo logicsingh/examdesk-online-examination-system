@@ -1,2 +1,44 @@
-<%@ page import="edu.bsc.exam.User,edu.bsc.exam.Html" %><% User navUser=(User)session.getAttribute("user"); %>
-<header class="topbar"><div class="topbar-inner"><a class="brand" href="<%=request.getContextPath()%>/dashboard"><span class="brand-mark">E</span> ExamDesk</a><nav><a href="<%=request.getContextPath()%>/dashboard">Dashboard</a><a href="<%=request.getContextPath()%>/results">Results</a><% if(navUser!=null&&("FACULTY".equals(navUser.role())||"ADMIN".equals(navUser.role()))){ %><a href="<%=request.getContextPath()%>/faculty/exams">Faculty</a><% } if(navUser!=null&&"ADMIN".equals(navUser.role())){ %><a href="<%=request.getContextPath()%>/admin">Admin</a><% } %></nav><div class="user-menu"><span><%=navUser==null?"":Html.escape(navUser.name())%></span><a class="signout" href="<%=request.getContextPath()%>/logout">Sign out</a></div></div></header>
+
+<%@ page import="edu.bsc.exam.User,edu.bsc.exam.Html" %>
+<%
+    User navUser = (User) session.getAttribute("user");
+%>
+
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" href="<%= request.getContextPath() %>/dashboard">
+            <span class="brand-mark">E</span> ExamDesk
+        </a>
+
+        <nav>
+            <a href="<%= request.getContextPath() %>/dashboard">Dashboard</a>
+            <a href="<%= request.getContextPath() %>/results">Results</a>
+
+            <% if (navUser != null &&
+                    ("FACULTY".equals(navUser.role()) ||
+                     "ADMIN".equals(navUser.role()))) { %>
+                <a href="<%= request.getContextPath() %>/faculty/exams">Faculty</a>
+            <% } %>
+
+            <% if (navUser != null && "ADMIN".equals(navUser.role())) { %>
+                <a href="<%= request.getContextPath() %>/admin">Admin</a>
+            <% } %>
+        </nav>
+
+        <div class="user-menu">
+            <span>
+                <%= navUser == null ? "" : Html.escape(navUser.name()) %>
+            </span>
+
+            <form method="post"
+                  action="<%= request.getContextPath() %>/logout"
+                  class="logout-form">
+
+                <input type="hidden" name="_csrf"
+                       value="<%= Html.escape((String) session.getAttribute("csrfToken")) %>">
+
+                <button type="submit" class="signout">Sign out</button>
+            </form>
+        </div>
+    </div>
+</header>

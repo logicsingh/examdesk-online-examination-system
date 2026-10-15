@@ -1,18 +1,76 @@
 package edu.bsc.exam;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.mindrot.jbcrypt.BCrypt;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 @WebServlet(urlPatterns={"/login","/register","/logout","/dashboard","/admin","/admin/users","/admin/subjects","/faculty/exams","/faculty/exam/create","/faculty/question/add","/faculty/exam/publish","/exams/start","/exams/take","/exams/submit","/results"})
 public class AppServlet extends HttpServlet {
+
+ private static final String CSRF_SESSION_KEY = "csrfToken";
+ private static final SecureRandom CSRF_RANDOM = new SecureRandom();
+
+ private String csrfToken(HttpServletRequest req) {
+  HttpSession session = req.getSession(true);
+  String token = (String) session.getAttribute(CSRF_SESSION_KEY);
+
+  if (token == null) {
+   byte[] bytes = new byte[32];
+   CSRF_RANDOM.nextBytes(bytes);
+   token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+   session.setAttribute(CSRF_SESSION_KEY, token);
+  }
+
+  return token;
+ }
+
+ private boolean validCsrf(HttpServletRequest req) {
+  HttpSession session = req.getSession(false);
+  if (session == null) {
+   return false;
+  }
+
+  String expected = (String) session.getAttribute(CSRF_SESSION_KEY);
+  String submitted = req.getParameter("_csrf");
+
+  if (expected == null || submitted == null) {
+   return false;
+  }
+
+  return MessageDigest.isEqual(
+   expected.getBytes(StandardCharsets.UTF_8),
+   submitted.getBytes(StandardCharsets.UTF_8)
+  );
+ }
+
  private User current(HttpServletRequest req){ HttpSession s=req.getSession(false); return s==null?null:(User)s.getAttribute("user"); }
  private void require(HttpServletRequest req,HttpServletResponse resp,String... roles)throws IOException {
   User u=current(req); if(u==null){resp.sendRedirect(req.getContextPath()+"/login");return;}
@@ -20,7 +78,9 @@ public class AppServlet extends HttpServlet {
  }
  private boolean allowed(HttpServletRequest req,HttpServletResponse resp,String... roles)throws IOException {
   User u=current(req); if(u==null){resp.sendRedirect(req.getContextPath()+"/login");return false;}
-  if(roles.length>0 && Arrays.stream(roles).noneMatch(r->r.equals(u.role()))){resp.sendError(403,"You do not have permission to access this page.");return false;} return true;
+  if(roles.length>0 && Arrays.stream(roles).noneMatch(r->r.equals(u.role()))){resp.sendError(403,"You do not have permission to access this page.");return false;}
+   csrfToken(req);
+   return true;
  }
  private void view(HttpServletRequest req,HttpServletResponse resp,String jsp)throws ServletException,IOException {req.getRequestDispatcher("/WEB-INF/views/"+jsp).forward(req,resp);}
  private String val(HttpServletRequest req,String key){String v=req.getParameter(key);return v==null?"":v.trim();}
@@ -28,8 +88,15 @@ public class AppServlet extends HttpServlet {
  private String bounded(String s,int max){return s.length()>max?s.substring(0,max):s;}
  @Override protected void doGet(HttpServletRequest req,HttpServletResponse resp)throws ServletException,IOException {
   String p=req.getServletPath();
-  if(p.equals("/logout")){HttpSession s=req.getSession(false);if(s!=null)s.invalidate();resp.sendRedirect(req.getContextPath()+"/login?message=Signed+out");return;}
-  if(p.equals("/login")||p.equals("/register")){req.setAttribute("mode",p.equals("/register")?"register":"login");view(req,resp,"auth.jsp");return;}
+
+if (p.equals("/login") || p.equals("/register")) {
+    csrfToken(req);
+    req.setAttribute("mode",
+            p.equals("/register") ? "register" : "login");
+    view(req, resp, "auth.jsp");
+    return;
+}
+
   if(p.equals("/dashboard")){if(!allowed(req,resp))return;dashboard(req,resp);return;}
   if(p.equals("/faculty/exams")){if(!allowed(req,resp,"FACULTY","ADMIN"))return;faculty(req,resp);return;}
   if(p.equals("/admin")){if(!allowed(req,resp,"ADMIN"))return;admin(req,resp);return;}
@@ -40,8 +107,22 @@ public class AppServlet extends HttpServlet {
  }
  @Override protected void doPost(HttpServletRequest req,HttpServletResponse resp)throws ServletException,IOException {
   req.setCharacterEncoding("UTF-8"); String p=req.getServletPath();
+  if (!validCsrf(req)) {
+    resp.sendError(HttpServletResponse.SC_FORBIDDEN,
+        "Invalid or missing CSRF token. Refresh the page and try again.");
+    return;
+}
   try {
    switch(p){
+
+case "/logout" -> {
+    HttpSession session = req.getSession(false);
+    if (session != null) {
+        session.invalidate();
+    }
+    resp.sendRedirect(req.getContextPath() + "/login?message=Signed+out");
+}
+
     case "/register" -> register(req,resp);
     case "/login" -> login(req,resp);
     case "/admin/users" -> {if(allowed(req,resp,"ADMIN"))updateRole(req,resp);}
@@ -57,7 +138,7 @@ public class AppServlet extends HttpServlet {
  }
  private void register(HttpServletRequest req,HttpServletResponse resp)throws ServletException,IOException,SQLException {
   String name=bounded(val(req,"fullName"),100), email=bounded(val(req,"email").toLowerCase(Locale.ROOT),150), password=req.getParameter("password");
-  if(name.length()<2||!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")||password==null||password.length()<8||password.length()>72){req.setAttribute("error","Enter a valid name and email. Password must be 8–72 characters.");req.setAttribute("mode","register");view(req,resp,"auth.jsp");return;}
+  if(name.length()<2||!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")||password==null||password.length()<8||password.length()>72){req.setAttribute("error","Enter a valid name and email. Password must be 8â€“72 characters.");req.setAttribute("mode","register");view(req,resp,"auth.jsp");return;}
   try(Connection c=Database.getConnection();PreparedStatement ps=c.prepareStatement("INSERT INTO users(full_name,email,password_hash,role) VALUES(?,?,?,'STUDENT')")){
    ps.setString(1,name);ps.setString(2,email);ps.setString(3,BCrypt.hashpw(password,BCrypt.gensalt(12)));ps.executeUpdate();resp.sendRedirect(req.getContextPath()+"/login?message=Account+created.+Sign+in+to+continue");
   }catch(SQLIntegrityConstraintViolationException ex){req.setAttribute("error","An account with this email already exists.");req.setAttribute("mode","register");view(req,resp,"auth.jsp");}
@@ -67,7 +148,15 @@ public class AppServlet extends HttpServlet {
   try(Connection c=Database.getConnection();PreparedStatement ps=c.prepareStatement("SELECT id,full_name,email,password_hash,role,active FROM users WHERE email=?")){
    ps.setString(1,email);try(ResultSet rs=ps.executeQuery()){
     if(!rs.next()||!rs.getBoolean("active")||password==null||!BCrypt.checkpw(password,rs.getString("password_hash"))){req.setAttribute("error","Email or password is incorrect.");req.setAttribute("mode","login");view(req,resp,"auth.jsp");return;}
-    HttpSession old=req.getSession(false);if(old!=null)old.invalidate();HttpSession s=req.getSession(true);s.setMaxInactiveInterval(1800);s.setAttribute("user",new User(rs.getLong("id"),rs.getString("full_name"),rs.getString("email"),rs.getString("role")));resp.sendRedirect(req.getContextPath()+"/dashboard");
+    HttpSession old = req.getSession(false);
+     if (old != null) {
+      old.invalidate();
+     }
+     HttpSession s = req.getSession(true);
+     s.setMaxInactiveInterval(1800);
+     s.setAttribute("user", new User(rs.getLong("id"), rs.getString("full_name"), rs.getString("email"), rs.getString("role")));
+     csrfToken(req);
+     resp.sendRedirect(req.getContextPath() + "/dashboard");
    }
   }
  }

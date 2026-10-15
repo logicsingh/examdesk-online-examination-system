@@ -4,10 +4,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Faculty workspace · ExamDesk</title>
-<link rel="stylesheet" href="<%=request.getContextPath()%>/assets/style.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Faculty workspace Â· ExamDesk</title>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css">
 </head>
 <body>
 <%@ include file="nav.jspf" %>
@@ -21,9 +21,9 @@
         </div>
     </div>
 
-    <% if(request.getParameter("message") != null) { %>
+    <% if (request.getParameter("message") != null) { %>
         <div class="alert success">
-            <%=Html.escape(request.getParameter("message"))%>
+            <%= Html.escape(request.getParameter("message")) %>
         </div>
     <% } %>
 
@@ -32,26 +32,37 @@
             <h2>Create an exam</h2>
 
             <form method="post"
-                  action="<%=request.getContextPath()%>/faculty/exam/create"
+                  action="<%= request.getContextPath() %>/faculty/exam/create"
                   class="stack">
+
+                <input type="hidden" name="_csrf"
+                       value="<%= Html.escape((String) session.getAttribute("csrfToken")) %>">
 
                 <label>
                     Exam title
                     <input name="title" maxlength="150" required
-                           placeholder="e.g. Database Management — Unit Test">
+                           placeholder="e.g. Database Management â€” Unit Test">
                 </label>
 
                 <label>
                     Subject
                     <select name="subjectId" required>
                         <option value="">Choose subject</option>
-                        <% for(Map<String,Object> s :
-                            (List<Map<String,Object>>)request.getAttribute("subjects")) { %>
-                            <option value="<%=s.get("id")%>">
-                                <%=Html.escape((String)s.get("code"))%> —
-                                <%=Html.escape((String)s.get("name"))%>
+                        <%
+                        List<Map<String, Object>> subjects =
+                            (List<Map<String, Object>>) request.getAttribute("subjects");
+
+                        if (subjects != null) {
+                            for (Map<String, Object> s : subjects) {
+                        %>
+                            <option value="<%= s.get("id") %>">
+                                <%= Html.escape((String) s.get("code")) %> â€”
+                                <%= Html.escape((String) s.get("name")) %>
                             </option>
-                        <% } %>
+                        <%
+                            }
+                        }
+                        %>
                     </select>
                 </label>
 
@@ -75,21 +86,32 @@
             <p class="muted">Questions can be added to draft exams only.</p>
 
             <form method="post"
-                  action="<%=request.getContextPath()%>/faculty/question/add"
+                  action="<%= request.getContextPath() %>/faculty/question/add"
                   class="stack">
+
+                <input type="hidden" name="_csrf"
+                       value="<%= Html.escape((String) session.getAttribute("csrfToken")) %>">
 
                 <label>
                     Draft exam
                     <select name="examId" required>
                         <option value="">Choose a draft</option>
-                        <% for(Map<String,Object> e :
-                            (List<Map<String,Object>>)request.getAttribute("exams")) {
-                            if("DRAFT".equals(e.get("status"))) { %>
-                                <option value="<%=e.get("id")%>">
-                                    <%=Html.escape((String)e.get("title"))%>
-                                </option>
-                        <%  }
-                        } %>
+                        <%
+                        List<Map<String, Object>> exams =
+                            (List<Map<String, Object>>) request.getAttribute("exams");
+
+                        if (exams != null) {
+                            for (Map<String, Object> e : exams) {
+                                if ("DRAFT".equals(e.get("status"))) {
+                        %>
+                            <option value="<%= e.get("id") %>">
+                                <%= Html.escape((String) e.get("title")) %>
+                            </option>
+                        <%
+                                }
+                            }
+                        }
+                        %>
                     </select>
                 </label>
 
@@ -121,10 +143,10 @@
                     <label>
                         Correct option
                         <select name="correctOption" required>
-                            <option>A</option>
-                            <option>B</option>
-                            <option>C</option>
-                            <option>D</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
                         </select>
                     </label>
 
@@ -161,38 +183,50 @@
                         <th>Action</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    <% for(Map<String,Object> e :
-                        (List<Map<String,Object>>)request.getAttribute("exams")) { %>
+                    <%
+                    if (exams != null) {
+                        for (Map<String, Object> e : exams) {
+                    %>
                         <tr>
                             <td>
-                                <strong><%=Html.escape((String)e.get("title"))%></strong>
+                                <strong><%= Html.escape((String) e.get("title")) %></strong>
                             </td>
-                            <td><%=Html.escape((String)e.get("subject"))%></td>
-                            <td><%=e.get("count")%></td>
-                            <td><%=e.get("duration")%> min</td>
+                            <td><%= Html.escape((String) e.get("subject")) %></td>
+                            <td><%= e.get("count") %></td>
+                            <td><%= e.get("duration") %> min</td>
                             <td>
-                                <span class="status <%=((String)e.get("status")).toLowerCase()%>">
-                                    <%=e.get("status")%>
+                                <span class="status <%= ((String) e.get("status")).toLowerCase(java.util.Locale.ROOT) %>">
+                                    <%= Html.escape((String) e.get("status")) %>
                                 </span>
                             </td>
                             <td>
-                                <% if("DRAFT".equals(e.get("status"))
-                                      && ((Integer)e.get("count")) > 0) { %>
+                                <% if ("DRAFT".equals(e.get("status"))
+                                        && ((Number) e.get("count")).intValue() > 0) { %>
+
                                     <form method="post"
-                                          action="<%=request.getContextPath()%>/faculty/exam/publish">
+                                          action="<%= request.getContextPath() %>/faculty/exam/publish">
+
+                                        <input type="hidden" name="_csrf"
+                                               value="<%= Html.escape((String) session.getAttribute("csrfToken")) %>">
+
                                         <input type="hidden" name="examId"
-                                               value="<%=e.get("id")%>">
+                                               value="<%= e.get("id") %>">
+
                                         <button class="button small primary" type="submit">
                                             Publish
                                         </button>
                                     </form>
                                 <% } else { %>
-                                    —
+                                    â€”
                                 <% } %>
                             </td>
                         </tr>
-                    <% } %>
+                    <%
+                        }
+                    }
+                    %>
                 </tbody>
             </table>
         </div>

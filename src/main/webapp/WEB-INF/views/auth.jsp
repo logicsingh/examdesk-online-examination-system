@@ -1,5 +1,85 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %><%@ page import="edu.bsc.exam.Html" %>
-<% boolean reg="register".equals(request.getAttribute("mode")); String title=reg?"Create student account":"Welcome back"; %>
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><%=title%> · ExamDesk</title><link rel="stylesheet" href="<%=request.getContextPath()%>/assets/style.css"></head><body class="auth-page"><main class="auth-card"><a class="brand" href="<%=request.getContextPath()%>/login"><span class="brand-mark">E</span> ExamDesk</a><p class="eyebrow">ONLINE EXAMINATION SYSTEM</p><h1><%=title%></h1><p class="muted"><%=reg?"Register as a student to access published assessments.":"Sign in to continue to your assessment workspace."%></p>
-<% if(request.getAttribute("error")!=null){ %><div class="alert error"><%=Html.escape((String)request.getAttribute("error"))%></div><% } if(request.getParameter("message")!=null){ %><div class="alert success"><%=Html.escape(request.getParameter("message"))%></div><% } %>
-<form method="post" action="<%=request.getContextPath()+(reg?"/register":"/login")%>"><% if(reg){ %><label>Full name<input name="fullName" maxlength="100" required autocomplete="name"></label><% } %><label>Email address<input type="email" name="email" maxlength="150" required autocomplete="email"></label><label>Password<input type="password" name="password" minlength="8" maxlength="72" required autocomplete="<%=reg?"new-password":"current-password"%>"></label><button class="button primary full" type="submit"><%=reg?"Create account":"Sign in"%></button></form><p class="form-foot"><%=reg?"Already registered?":"New student?"%> <a href="<%=request.getContextPath()+(reg?"/login":"/register")%>"><%=reg?"Sign in":"Create an account"%></a></p><p class="small muted">Faculty and administrator roles are assigned by an administrator.</p></main></body></html>
+
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ page import="edu.bsc.exam.Html" %>
+<%
+    boolean reg = "register".equals(request.getAttribute("mode"));
+    String title = reg ? "Create student account" : "Welcome back";
+%>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title><%= title %> Â· ExamDesk</title>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/assets/style.css">
+</head>
+<body class="auth-page">
+    <main class="auth-card">
+        <a class="brand" href="<%= request.getContextPath() %>/login">
+            <span class="brand-mark">E</span> ExamDesk
+        </a>
+
+        <p class="eyebrow">ONLINE EXAMINATION SYSTEM</p>
+        <h1><%= title %></h1>
+        <p class="muted">
+            <%= reg
+                ? "Register as a student to access published assessments."
+                : "Sign in to continue to your assessment workspace." %>
+        </p>
+
+        <% if (request.getAttribute("error") != null) { %>
+            <div class="alert error">
+                <%= Html.escape((String) request.getAttribute("error")) %>
+            </div>
+        <% } %>
+
+        <% if (request.getParameter("message") != null) { %>
+            <div class="alert success">
+                <%= Html.escape(request.getParameter("message")) %>
+            </div>
+        <% } %>
+
+        <form method="post"
+              action="<%= request.getContextPath() + (reg ? "/register" : "/login") %>">
+
+
+<input type="hidden" name="_csrf"
+       value="<%= Html.escape((String) session.getAttribute("csrfToken")) %>">
+
+            <% if (reg) { %>
+                <label>
+                    Full name
+                    <input name="fullName" maxlength="100" required autocomplete="name">
+                </label>
+            <% } %>
+
+            <label>
+                Email address
+                <input type="email" name="email" maxlength="150"
+                       required autocomplete="email">
+            </label>
+
+            <label>
+                Password
+                <input type="password" name="password" minlength="8" maxlength="72"
+                       required autocomplete="<%= reg ? "new-password" : "current-password" %>">
+            </label>
+
+            <button class="button primary full" type="submit">
+                <%= reg ? "Create account" : "Sign in" %>
+            </button>
+        </form>
+
+        <p class="form-foot">
+            <%= reg ? "Already registered?" : "New student?" %>
+            <a href="<%= request.getContextPath() + (reg ? "/login" : "/register") %>">
+                <%= reg ? "Sign in" : "Create an account" %>
+            </a>
+        </p>
+
+        <p class="small muted">
+            Faculty and administrator roles are assigned by an administrator.
+        </p>
+    </main>
+</body>
+</html>
