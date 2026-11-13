@@ -48,9 +48,9 @@ mvn -version
 1. Start MySQL.
 2. Open MySQL Workbench or another MySQL client.
 3. Execute `src/main/resources/schema.sql` to create the database and tables.
-4. The default JDBC URL is `jdbc:mysql://localhost:3306/exam_portal`. The application defaults to MySQL user `root` with an empty password if environment variables are not configured.
+4. Configure `EXAM_DB_URL`, `EXAM_DB_USER`, and `EXAM_DB_PASSWORD` before starting Tomcat. The application does not provide a default database username or password.
 
-For a local setup using a dedicated MySQL application account, configure these environment variables in Windows Command Prompt before starting Tomcat:
+For a local setup, configure these environment variables in Windows Command Prompt before starting Tomcat:
 
 ```bat
 set "EXAM_DB_URL=jdbc:mysql://localhost:3306/exam_portal?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
